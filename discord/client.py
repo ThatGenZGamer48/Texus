@@ -227,7 +227,6 @@ class Client(BotBase):
         **options: Any,
     ):
         # self.ws is set in the connect method
-        super().__init__(**options)
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = (
             asyncio.get_event_loop() if loop is None else loop
@@ -263,6 +262,7 @@ class Client(BotBase):
         self._ready: asyncio.Event = asyncio.Event()
         self._connection._get_websocket = self._get_websocket
         self._connection._get_client = lambda: self
+        super().__init__(**options)
 
         if VoiceClient.warn_nacl:
             VoiceClient.warn_nacl = False

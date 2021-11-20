@@ -30,6 +30,7 @@ from .application_commands import (
     AutocompleteContext,
     application_command,
 )
+from .client import Client
 from .cog import CogMixin
 
 from .errors import Forbidden, DiscordException
@@ -563,7 +564,7 @@ class BotBase(ApplicationCommandMixin, CogMixin):
     _supports_prefixed_commands = False
     # TODO I think
     def __init__(self, description=None, *args, **options):
-        # super(Client, self).__init__(*args, **kwargs)
+        # super(Client, self).__init__(*args, **options)
         # I replaced ^ with v and it worked
         super().__init__(*args, **options)
         self.extra_events = {}  # TYPE: Dict[str, List[CoroFunc]]
