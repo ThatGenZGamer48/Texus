@@ -29,7 +29,7 @@ import sys
 import discord.utils
 import types
 from . import errors
-from .commands import SlashCommand, UserCommand, MessageCommand, ApplicationCommand
+from .application_commands import SlashCommand, UserCommand, MessageCommand, ApplicationCommand
 
 from typing import (
     Any,
