@@ -41,7 +41,7 @@ from .application_context import ApplicationContext, AutocompleteContext
 from .utils import find, get_or_fetch, async_all
 from .errors import ValidationError, ClientException
 from .errors import ApplicationCommandError, CheckFailure, ApplicationCommandInvokeError
-from .permissions import Permission
+from .application_permissions import Permission
 
 __all__ = (
     "_BaseCommand",
