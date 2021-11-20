@@ -797,7 +797,7 @@ class SlashCommandGroup(ApplicationCommand, Option):
 
         return as_dict
 
-    def command(self, **kwargs) -> SlashCommand:
+    def subcommand(self, **kwargs) -> SlashCommand:
         def wrap(func) -> SlashCommand:
             command = SlashCommand(func, parent=self, **kwargs)
             self.subcommands.append(command)

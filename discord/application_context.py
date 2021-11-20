@@ -65,8 +65,8 @@ class ApplicationContext(discord.abc.Messageable):
         The command that this context belongs to.
     """
 
-    def __init__(self, client: Client, interaction: Interaction):
-        self.client = client
+    def __init__(self, bot: Client, interaction: Interaction):
+        self.bot = bot
         self.interaction = interaction
         self.command: ApplicationCommand = None  # type: ignore
         self._state: ConnectionState = self.interaction._state
@@ -178,8 +178,8 @@ class AutocompleteContext:
 
     __slots__ = ("bot", "interaction", "command", "focused", "value", "options")
 
-    def __init__(self, client: Client, interaction: Interaction) -> None:
-        self.client = client
+    def __init__(self, bot: Client, interaction: Interaction) -> None:
+        self.bot = bot
         self.interaction = interaction
 
         # self.command = command
