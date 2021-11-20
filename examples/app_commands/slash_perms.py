@@ -2,6 +2,7 @@ import discord
 
 # Imports permissions from discord
 from discord import application_permissions as permissions
+from discord.ext import commands
 
 bot = commands.Bot(command_prefix="!")
 
