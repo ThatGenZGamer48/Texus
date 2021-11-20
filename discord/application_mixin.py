@@ -30,7 +30,6 @@ from .application_commands import (
     AutocompleteContext,
     application_command,
 )
-from .client import Client
 from .cog import CogMixin
 
 from .errors import Forbidden, DiscordException
