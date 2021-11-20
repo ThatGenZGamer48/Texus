@@ -3,7 +3,7 @@ import discord
 # Imports permissions from discord
 from discord import application_permissions as permissions
 
-bot = discord.Client()
+bot = commands.Bot(command_prefix="!")
 
 # Note: If you want you can use commands.Bot instead of discord.Bot
 # Use discord.Bot if you don't want prefixed message commands
