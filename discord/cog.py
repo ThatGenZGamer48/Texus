@@ -46,10 +46,10 @@ from typing import (
     Type,
 )
 
-from .commands.commands import _BaseCommand
+from .application_commands import _BaseCommand
 
 if TYPE_CHECKING:
-    from .commands import ApplicationContext, ApplicationCommand
+    from .application_commands import ApplicationContext, ApplicationCommand
 
 __all__ = ("CogMeta", "Cog", "CogMixin")
 
