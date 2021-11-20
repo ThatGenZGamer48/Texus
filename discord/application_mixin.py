@@ -491,23 +491,6 @@ class ApplicationCommandMixin:
 
         return decorator
 
-    def command(self, **kwargs):
-        """There is an alias for :meth:`application_command`.
-
-        .. note::
-
-            This decorator is overridden by :class:`discord.ext.commands.Bot`.
-
-        .. versionadded:: 2.0
-
-        Returns
-        --------
-        Callable[..., :class:`ApplicationCommand`]
-            A decorator that converts the provided method into an :class:`.ApplicationCommand`, adds it to the bot,
-            then returns it.
-        """
-        return self.application_command(**kwargs)
-
     def command_group(
         self, name: str, description: str, guild_ids=None
     ) -> SlashCommandGroup:

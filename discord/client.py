@@ -227,6 +227,7 @@ class Client(BotBase):
         **options: Any,
     ):
         # self.ws is set in the connect method
+        super().__init__(**options)
         self.ws: DiscordWebSocket = None  # type: ignore
         self.loop: asyncio.AbstractEventLoop = (
             asyncio.get_event_loop() if loop is None else loop
