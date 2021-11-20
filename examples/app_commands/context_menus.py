@@ -1,7 +1,7 @@
 import discord
+from discord.ext import commands
 
-# commands.Bot() works as well
-bot = discord.Client()
+bot = commands.Bot(command_prefix="!")
 
 
 @bot.user_command(guild_ids=[...])  # create a user command for the supplied guilds
