@@ -575,7 +575,7 @@ class HelpCommand:
         prefix_commands = [
             command
             for command in commands
-            if not isinstance(command, discord.commands.ApplicationCommand)
+            if not isinstance(command, discord.ApplicationCommand)
         ]
         iterator = (
             prefix_commands
