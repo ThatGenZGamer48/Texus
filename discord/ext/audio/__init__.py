@@ -13,4 +13,4 @@ from .player import *
 from .queue import *
 from .utils import *
 
-logging.getLogger("slate")
+logging.getLogger("audio")
