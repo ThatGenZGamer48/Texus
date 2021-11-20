@@ -1,68 +1,111 @@
-# Future
-from __future__ import annotations
+import struct
 
-# Standard Library
-import random
-import re
-import time
-from typing import Any, Literal
+from .datarw import DataReader
+from .models import AudioTrack
 
 
-__all__ = (
-    "ExponentialBackoff",
-    "MISSING",
-    "SPOTIFY_URL_REGEX"
-)
+def format_time(time):
+    """
+    Formats the given time into HH:MM:SS.
+
+    Parameters
+    ----------
+    time: :class:`int`
+        The time in milliseconds.
+
+    Returns
+    -------
+    :class:`str`
+    """
+    hours, remainder = divmod(time / 1000, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    return '%02d:%02d:%02d' % (hours, minutes, seconds)
 
 
-class ExponentialBackoff:
+def parse_time(time):
+    """
+    Parses the given time into days, hours, minutes and seconds.
+    Useful for formatting time yourself.
 
-    def __init__(
-        self,
-        base: int = 1,
-        *,
-        integral: bool = False
-    ) -> None:
+    Parameters
+    ----------
+    time: :class:`int`
+        The time in milliseconds.
 
-        self._base = base
+    Returns
+    -------
+    Tuple[:class:`int`, :class:`int`, :class:`int`, :class:`int`]
+    """
+    days, remainder = divmod(time / 1000, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
 
-        self._exp = 0
-        self._max = 10
-        self._reset_time = base * 2 ** 11
-        self._last_invocation = time.monotonic()
-
-        rand = random.Random()
-        rand.seed()
-
-        self._randfunc = rand.randrange if integral else rand.uniform
-
-    def delay(self) -> float:
-
-        invocation = time.monotonic()
-        interval = invocation - self._last_invocation
-        self._last_invocation = invocation
-
-        if interval > self._reset_time:
-            self._exp = 0
-
-        self._exp = min(self._exp + 1, self._max)
-        return self._randfunc(0, self._base * 2 ** self._exp)
+    return days, hours, minutes, seconds
 
 
-class _MissingSentinel:
+def decode_track(track, decode_errors='ignore'):
+    """
+    Decodes a base64 track string into an AudioTrack object.
 
-    def __eq__(self, other: Any) -> Literal[False]:
-        return False
+    Parameters
+    ----------
+    track: :class:`str`
+        The base64 track string.
+    decode_errors: :class:`str`
+        The action to take upon encountering erroneous characters within track titles.
 
-    def __bool__(self) -> Literal[False]:
-        return False
+    Returns
+    -------
+    :class:`AudioTrack`
+    """
+    reader = DataReader(track)
 
-    def __repr__(self) -> str:
-        return "..."
+    flags = (reader.read_int() & 0xC0000000) >> 30
+    version, = struct.unpack('B', reader.read_byte()) if flags & 1 != 0 else 1  # pylint: disable=unused-variable
+
+    title = reader.read_utf().decode(errors=decode_errors)
+    author = reader.read_utf().decode()
+    length = reader.read_long()
+    identifier = reader.read_utf().decode()
+    is_stream = reader.read_boolean()
+    uri = reader.read_utf().decode() if reader.read_boolean() else None
+    source = reader.read_utf().decode()
+    position = reader.read_long()  # noqa: F841 pylint: disable=unused-variable
+
+    track_object = {
+        'track': track,
+        'info': {
+            'title': title,
+            'author': author,
+            'length': length,
+            'identifier': identifier,
+            'isStream': is_stream,
+            'uri': uri,
+            'isSeekable': not is_stream
+        }
+    }
+
+    return AudioTrack(track_object, 0, source=source)
 
 
-MISSING: Any = _MissingSentinel()
+# def encode_track(track: dict):
+#     assert {'title', 'author', 'length', 'identifier', 'is_stream', 'uri', 'source', 'position'} == track.keys()
 
-SPOTIFY_URL_REGEX: re.Pattern = re.compile(
-    r"(https?://open.)?(spotify)(.com/|:)(?P<type>album|playlist|track|artist)([/:])(?P<id>[a-zA-Z0-9]+)(\?si=[a-zA-Z0-9]+)?(&dl_branch=[0-9]+)?"
-)
+#     writer = DataWriter()
+
+#     version = struct.pack('B', 2)
+#     writer.write_byte(version)
+#     writer.write_utf(track['title'])
+#     writer.write_utf(track['author'])
+#     writer.write_long(track['length'])
+#     writer.write_utf(track['identifier'])
+#     writer.write_boolean(track['is_stream'])
+#     writer.write_boolean(track['uri'])
+#     writer.write_utf(track['uri'])
+#     writer.write_utf(track['source'])
+#     writer.write_long(track['position'])
+
+#     enc = writer.finish()
+#     b64 = b64encode(enc)
+#     return b64

@@ -1,195 +1,142 @@
-# Future
-from __future__ import annotations
-
-# Standard Library
-import abc
-import asyncio
-import json
-import logging
-from typing import Any, Callable, Generic, Literal, TypeVar, Union
-
-# Packages
-import aiohttp
-import aiospotify
-import discord
-from ..ext import commands
-from .exceptions import HTTPError
+from .events import Event
+from .websocket import WebSocket
 
 
-__all__ = (
-    "BaseNode",
-)
-__log__: logging.Logger = logging.getLogger("audio.node")
+class Node:
+    """
+    Represents a Node connection with Lavalink.
 
+    Note
+    ----
+    Nodes are **NOT** mean't to be added manually, but rather with :func:`Client.add_node`. Doing this can cause
+    invalid cache and much more problems.
 
-BotT = TypeVar("BotT", bound=Union[discord.Client, discord.AutoShardedClient, commands.Bot, commands.AutoShardedBot])
+    Attributes
+    ----------
+    host: :class:`str`
+        The address of the Lavalink node.
+    port: :class:`int`
+        The port to use for websocket and REST connections.
+    password: :class:`str`
+        The password used for authentication.
+    region: :class:`str`
+        The region to assign this node to.
+    name: :class:`str`
+        The name the :class:`Node` is identified by.
+    stats: :class:`Stats`
+        The statistics of how the :class:`Node` is performing.
+    """
+    def __init__(self, manager, host: str, port: int, password: str,
+                 region: str, resume_key: str, resume_timeout: int, name: str = None,
+                 reconnect_attempts: int = 3):
+        self._manager = manager
+        self._ws = WebSocket(self, host, port, password, resume_key, resume_timeout, reconnect_attempts)
 
-
-class BaseNode(abc.ABC, Generic[BotT]):
-
-    def __init__(
-        self,
-        bot: BotT,
-        identifier: str,
-        host: str,
-        port: str,
-        password: str,
-        session: aiohttp.ClientSession | None = None,
-        json_dumps: Callable[..., str] | None = None,
-        json_loads: Callable[..., dict[str, Any]] | None = None,
-        spotify_client_id: str | None = None,
-        spotify_client_secret: str | None = None,
-    ) -> None:
-
-        self._bot: BotT = bot
-        self._identifier: str = identifier
-
-        self._host: str = host
-        self._port: str = port
-        self._password: str = password
-
-        self._session: aiohttp.ClientSession = session or aiohttp.ClientSession()
-
-        self._json_dumps: Callable[..., str] = json_dumps or json.dumps
-        self._json_loads: Callable[..., dict[str, Any]] = json_loads or json.loads
-
-        self._spotify: aiospotify.Client | None = None
-        if spotify_client_id and spotify_client_secret:
-            self._spotify = aiospotify.Client(client_id=spotify_client_id, client_secret=spotify_client_secret, session=self._session)
-
-        self._websocket: aiohttp.ClientWebSocketResponse | None = None
-        self._task: asyncio.Task | None = None
-
-    #
-
-    async def request(
-        self,
-        method: Literal["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        /,
-        *,
-        endpoint: str,
-        parameters: dict[str, Any] | None = None,
-        data: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-
-        url = f"{self._http_url}{endpoint}"
-        headers = {
-            "Authorization": self._password,
-            "Client-Name":   "Slate"
-        }
-
-        for tries in range(5):
-
-            try:
-
-                async with self._session.request(
-                        method=method,
-                        url=url,
-                        headers=headers,
-                        params=parameters,
-                        data=data
-                ) as response:
-
-                    if 200 <= response.status < 300:
-
-                        response_data = await response.json(loads=self._json_loads)
-
-                        __log__.debug(f"'{method}' @ '{response.url}' success.\nPayload: {response_data}")
-                        return response_data
-
-                    delay = 1 + tries * 2
-
-                    __log__.debug(f"'{method}' @ '{response.url}' received '{response.status}' status code, retrying in {delay}s.")
-                    await asyncio.sleep(delay)
-
-            except OSError as error:
-                if tries < 4 and error.errno in (54, 10054):
-
-                    delay = 1 + tries * 2
-
-                    __log__.debug(f"'{method}' @ '{response.url}' raised OSError, retrying in {delay}s.")
-                    await asyncio.sleep(delay)
-
-                    continue
-                raise
-
-        if response:
-            __log__.debug(f"'{method}' @ '{response.url}' received '{response.status}' status code, all 5 retries used.")
-            raise HTTPError(response, message=f"A {response.status} status code was received, 5 retries used.")
-
-        raise RuntimeError("This shouldn't happen.")
-
-    def is_connected(self) -> bool:
-        return self._websocket is not None and self._websocket.closed is False
-
-    #
+        self.host = host
+        self.port = port
+        self.password = password
+        self.region = region
+        self.name = name or '{}-{}:{}'.format(self.region, self.host, self.port)
+        self.stats = None
 
     @property
-    @abc.abstractmethod
-    def _http_url(self) -> str:
-        raise NotImplementedError
+    def available(self):
+        """ Returns whether the node is available for requests. """
+        return self._ws.connected
 
     @property
-    @abc.abstractmethod
-    def _ws_url(self) -> str:
-        raise NotImplementedError
+    def _original_players(self):
+        """ Returns a list of players that were assigned to this node, but were moved due to failover etc. """
+        return [p for p in self._manager._lavalink.player_manager.values() if p._original_node == self]
 
     @property
-    @abc.abstractmethod
-    def players(self) -> Any:
-        raise NotImplementedError
+    def players(self):
+        """ Returns a list of all players on this node. """
+        return [p for p in self._manager._lavalink.player_manager.values() if p.node == self]
 
     @property
-    @abc.abstractmethod
-    def stats(self) -> Any:
-        raise NotImplementedError
+    def penalty(self):
+        """ Returns the load-balancing penalty for this node. """
+        if not self.available or not self.stats:
+            return 9e30
 
-    #
+        return self.stats.penalty.total
 
-    @abc.abstractmethod
-    async def connect(
-        self,
-        *,
-        raise_on_fail: bool = True
-    ) -> None:
-        raise NotImplementedError
+    async def get_tracks(self, query: str):
+        """|coro|
+        Gets all tracks associated with the given query.
 
-    @abc.abstractmethod
-    async def disconnect(
-        self,
-        *,
-        force: bool = False
-    ) -> None:
-        raise NotImplementedError
+        Parameters
+        ----------
+        query: :class:`str`
+            The query to perform a search for.
 
-    @abc.abstractmethod
-    async def destroy(
-        self,
-        *,
-        force: bool = False
-    ) -> None:
-        raise NotImplementedError
+        Returns
+        -------
+        :class:`dict`
+            A dict representing an AudioTrack.
+        """
+        return await self._manager._lavalink.get_tracks(query, self)
 
-    @abc.abstractmethod
-    async def _listen(
-        self
-    ) -> None:
-        raise NotImplementedError
+    async def routeplanner_status(self):
+        """|coro|
+        Gets the routeplanner status of the target node.
 
-    @abc.abstractmethod
-    async def _handle_payload(
-        self,
-        payload: dict[str, Any],
-        /
-    ) -> None:
-        raise NotImplementedError
+        Returns
+        -------
+        :class:`dict`
+            A dict representing the routeplanner information.
+        """
+        return await self._manager._lavalink.routeplanner_status(self)
 
-    @abc.abstractmethod
-    async def _send_payload(
-        self,
-        op: Any,
-        /,
-        *,
-        payload: dict[str, Any]
-    ) -> None:
-        raise NotImplementedError
+    async def routeplanner_free_address(self, address: str):
+        """|coro|
+        Gets the routeplanner status of the target node.
+
+        Parameters
+        ----------
+        address: :class:`str`
+            The address to free.
+
+        Returns
+        -------
+        bool
+            True if the address was freed, False otherwise.
+        """
+        return await self._manager._lavalink.routeplanner_free_address(self, address)
+
+    async def routeplanner_free_all_failing(self):
+        """|coro|
+        Gets the routeplanner status of the target node.
+
+        Returns
+        -------
+        bool
+            True if all failing addresses were freed, False otherwise.
+        """
+        return await self._manager._lavalink.routeplanner_free_all_failing(self)
+
+    async def _dispatch_event(self, event: Event):
+        """|coro|
+        Dispatches the given event to all registered hooks.
+
+        Parameters
+        ----------
+        event: :class:`Event`
+            The event to dispatch to the hooks.
+        """
+        await self._manager._lavalink._dispatch_event(event)
+
+    async def _send(self, **data):
+        """|coro|
+        Sends the passed data to the node via the websocket connection.
+
+        Parameters
+        ----------
+        data: class:`any`
+            The dict to send to Lavalink.
+        """
+        await self._ws._send(**data)
+
+    def __repr__(self):
+        return '<Node name={0.name} region={0.region}>'.format(self)
