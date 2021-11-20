@@ -30,7 +30,6 @@ from __future__ import annotations
 import asyncio
 import collections
 import collections.abc
-import inspect
 import importlib.util
 import sys
 import traceback
@@ -40,7 +39,6 @@ from typing import (
     Callable,
     Mapping,
     List,
-    Dict,
     TYPE_CHECKING,
     Optional,
     TypeVar,
@@ -56,6 +54,7 @@ from .context import Context
 from . import errors
 from .help import HelpCommand, DefaultHelpCommand
 from .cog import Cog
+from ...application_mixin import BotBase as BB
 
 if TYPE_CHECKING:
     import importlib.machinery
@@ -1019,7 +1018,7 @@ class Bot(BotBase, discord.Client):
     pass
 
 
-class AutoShardedBot(BotBase, discord.AutoShardedBot):
+class AutoShardedBot(BotBase, discord.AutoShardedClient, BB):
     """This is similar to :class:`.Bot` except that it is inherited from
     :class:`discord.AutoShardedBot` instead.
     """
