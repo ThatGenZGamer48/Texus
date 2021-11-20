@@ -69,7 +69,6 @@ packages = [
     "discord.commands",
     "discord.ext.commands",
     "discord.ext.tasks",
-    "discord.commands",
 ]
 
 setup(
