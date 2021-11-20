@@ -133,8 +133,8 @@ class ApplicationContext(discord.abc.Messageable):
         return self.interaction.followup
 
     async def delete(self):
-        """Calls :attr:`~discord.commands.ApplicationContext.respond`.
-        If the response is done, then calls :attr:`~discord.commands.ApplicationContext.respond` first."""
+        """Calls :attr:`~discord.ApplicationContext.respond`.
+        If the response is done, then calls :attr:`~discord.ApplicationContext.respond` first."""
         if not self.response.is_done():
             await self.defer()
 
