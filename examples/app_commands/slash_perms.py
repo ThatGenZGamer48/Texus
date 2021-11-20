@@ -1,6 +1,6 @@
 import discord
 
-# Imports permissions from discord.commands
+# Imports permissions from discord
 from discord import application_permissions as permissions
 
 bot = discord.Client()
