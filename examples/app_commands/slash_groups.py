@@ -1,6 +1,6 @@
 import discord
 
-bot = discord.Bot()
+bot = discord.Client()
 
 # If you use commands.Bot, @bot.slash_command should be used for
 # slash commands. You can use @bot.slash_command with discord.Bot as well

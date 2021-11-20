@@ -1,6 +1,6 @@
 import discord
 
-bot = discord.Bot()
+bot = discord.Client()
 
 
 # Note: If you want you can use commands.Bot instead of discord.Bot
