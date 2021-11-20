@@ -1,9 +1,9 @@
 import discord
 
 # Imports permissions from discord.commands
-from discord.commands import permissions
+from discord import application_permissions as permissions
 
-bot = discord.Bot()
+bot = discord.Client()
 
 # Note: If you want you can use commands.Bot instead of discord.Bot
 # Use discord.Bot if you don't want prefixed message commands
