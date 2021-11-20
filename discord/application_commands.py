@@ -54,7 +54,6 @@ __all__ = (
     "application_command",
     "user_command",
     "message_command",
-    "command",
     "SlashCommandGroup",
     "ContextMenuCommand",
     "UserCommand",
