@@ -20,7 +20,7 @@ from typing import (
 import sys
 
 from .utils import MISSING, get, find, async_all
-from .application_context import (
+from .application_commands import (
     SlashCommand,
     SlashCommandGroup,
     MessageCommand,
